@@ -1,5 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head><title>Cliente Dashboard</title></head>
-<body><h1>Bienvenido, Cliente</h1></body>
+<body>
+    <h1>Bienvenido, Cliente: {{ request.user.username }} (Gerencia: {{ gerencia_usuario|default:"Sin gerencia" }})</h1>
+    <h2>Mis Dispositivos</h2>
+    {% if dispositivos %}
+        <ul>
+        {% for dispositivo in dispositivos %}
+            <li>{{ dispositivo.nomenclatura }} - 
+                Ubicación: {{ dispositivo.ultima_ubicacion.ubicacion_id_ubicacion|default:"Sin ubicación" }} - 
+                Estado: {{ dispositivo.ultimo_estado.estado_id_estado|default:"Sin estado" }}</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No tienes dispositivos asignados.</p>
+    {% endif %}
+    <form method="post" action="{% url 'custom_auth:logout' %}">
+        {% csrf_token %}
+        <button type="submit">Cerrar Sesión</button>
+    </form>
+</body>
 </html>

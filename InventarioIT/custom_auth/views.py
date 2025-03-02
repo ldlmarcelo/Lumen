@@ -1,5 +1,7 @@
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import reverse_lazy
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
 
 class LoginView(LoginView):
     template_name = 'custom_auth/login.html'
@@ -19,5 +21,7 @@ class LoginView(LoginView):
             return reverse_lazy('admin:index')
         return reverse_lazy('custom_auth:login')
 
+@method_decorator(never_cache, name='dispatch')  # Aplicar never_cache correctamente
 class LogoutView(LogoutView):
+    template_name = 'custom_auth/logout.html'
     next_page = reverse_lazy('custom_auth:login')
