@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Gerencia, TipoDispositivo, EstadoDispositivo, Ubicacion, Marca, Modelo,
-    Caracteristica, CantidadMemoria, TipoMemoria, CaracteristicaEspecifica,
+    Caracteristica, CantidadMemoria, TipoMemoria, CaracteristicaTipoDispositivo,
     Dispositivo, DispositivoCaracteristica, DispositivoEstado,
     DispositivoUbicacion, DispositivoPropietarioHistorico
 )
@@ -16,7 +16,7 @@ admin.site.register(Modelo)
 admin.site.register(Caracteristica)
 admin.site.register(CantidadMemoria)
 admin.site.register(TipoMemoria)
-admin.site.register(CaracteristicaEspecifica)
+admin.site.register(CaracteristicaTipoDispositivo)  # Reemplaza CaracteristicaEspecifica
 admin.site.register(Dispositivo)
 admin.site.register(DispositivoCaracteristica)
 admin.site.register(DispositivoEstado)

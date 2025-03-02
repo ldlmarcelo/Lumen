@@ -1,11 +1,21 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from mptt.models import MPTTModel, TreeForeignKey
 
 # Catálogos
-class Gerencia(models.Model):
+class Gerencia(MPTTModel):
     id_gerencia = models.AutoField(primary_key=True)
     nombre = models.CharField(unique=True, max_length=45, verbose_name="Nombre")
+    parent = TreeForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='children', verbose_name="Gerencia Superior")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
+
+    class MPTTMeta:
+        order_insertion_by = ['nombre']
+
+    def clean(self):
+        if not self.is_active and Gerencia.objects.filter(nombre=self.nombre, is_active=False).exclude(id_gerencia=self.id_gerencia).exists():
+            raise ValidationError("Ya existe una gerencia inactiva con este nombre.")
 
     def __str__(self):
         return self.nombre
@@ -16,6 +26,10 @@ class TipoDispositivo(models.Model):
     descripcion = models.TextField(null=True, blank=True, verbose_name='Descripción')
     is_active = models.BooleanField(default=True, verbose_name="Activo")
 
+    def clean(self):
+        if not self.is_active and TipoDispositivo.objects.filter(nombre=self.nombre, is_active=False).exclude(id_tipo_dispositivo=self.id_tipo_dispositivo).exists():
+            raise ValidationError("Ya existe un tipo de dispositivo inactivo con este nombre.")
+
     def __str__(self):
         return self.nombre
 
@@ -25,25 +39,39 @@ class EstadoDispositivo(models.Model):
     descripcion = models.TextField(null=True, blank=True, verbose_name='Descripción')
     is_active = models.BooleanField(default=True, verbose_name="Activo")
 
+    def clean(self):
+        if not self.is_active and EstadoDispositivo.objects.filter(nombre=self.nombre, is_active=False).exclude(id_estado_dispositivo=self.id_estado_dispositivo).exists():
+            raise ValidationError("Ya existe un estado de dispositivo inactivo con este nombre.")
+
     def __str__(self):
         return self.nombre
 
 class Ubicacion(models.Model):
+    ZONA_CHOICES = [('Norte', 'Zona Norte'), ('Centro', 'Zona Centro')]
     id_ubicacion = models.AutoField(primary_key=True)
     agencia = models.CharField(max_length=45, unique=False, verbose_name="Agencia")
     piso = models.CharField(max_length=45, blank=True, null=True, verbose_name="Piso")
+    zona = models.CharField(max_length=10, choices=ZONA_CHOICES, default='Norte', verbose_name="Zona")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
 
     class Meta:
-        unique_together = ('agencia', 'piso')
+        unique_together = ('agencia', 'piso', 'zona')
+
+    def clean(self):
+        if not self.is_active and Ubicacion.objects.filter(agencia=self.agencia, piso=self.piso, zona=self.zona, is_active=False).exclude(id_ubicacion=self.id_ubicacion).exists():
+            raise ValidationError("Ya existe una ubicación inactiva con estos valores.")
 
     def __str__(self):
-        return f"{self.agencia} - Piso {self.piso}"
+        return f"{self.agencia} - Piso {self.piso} - {self.zona}"
 
 class Marca(models.Model):
     id_marca = models.AutoField(primary_key=True)
     nombre = models.CharField(unique=True, max_length=45, verbose_name="Nombre")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
+
+    def clean(self):
+        if not self.is_active and Marca.objects.filter(nombre=self.nombre, is_active=False).exclude(id_marca=self.id_marca).exists():
+            raise ValidationError("Ya existe una marca inactiva con este nombre.")
 
     def __str__(self):
         return self.nombre
@@ -51,11 +79,15 @@ class Marca(models.Model):
 class Modelo(models.Model):
     id_modelo = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=45, verbose_name="Nombre")
-    marca_id_marca = models.ForeignKey(Marca, models.DO_NOTHING, db_column='marca_id_marca', verbose_name="Marca")
+    marca_id_marca = models.ForeignKey(Marca, on_delete=models.DO_NOTHING, db_column='marca_id_marca', verbose_name="Marca")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
 
     class Meta:
         unique_together = ('nombre', 'marca_id_marca')
+
+    def clean(self):
+        if not self.is_active and Modelo.objects.filter(nombre=self.nombre, marca_id_marca=self.marca_id_marca, is_active=False).exclude(id_modelo=self.id_modelo).exists():
+            raise ValidationError("Ya existe un modelo inactivo con este nombre y marca.")
 
     def __str__(self):
         return f"{self.marca_id_marca.nombre} - {self.nombre}"
@@ -65,6 +97,10 @@ class Caracteristica(models.Model):
     nombre = models.CharField(max_length=45, unique=True, verbose_name="Nombre")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
 
+    def clean(self):
+        if not self.is_active and Caracteristica.objects.filter(nombre=self.nombre, is_active=False).exclude(id_caracteristica=self.id_caracteristica).exists():
+            raise ValidationError("Ya existe una característica inactiva con este nombre.")
+
     def __str__(self):
         return self.nombre
 
@@ -72,6 +108,10 @@ class CantidadMemoria(models.Model):
     id_cantidad_memoria = models.AutoField(primary_key=True)
     cantidad = models.IntegerField(unique=True, verbose_name="Cantidad (GB)")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
+
+    def clean(self):
+        if not self.is_active and CantidadMemoria.objects.filter(cantidad=self.cantidad, is_active=False).exclude(id_cantidad_memoria=self.id_cantidad_memoria).exists():
+            raise ValidationError("Ya existe una cantidad de memoria inactiva con este valor.")
 
     def __str__(self):
         return str(self.cantidad)
@@ -81,19 +121,21 @@ class TipoMemoria(models.Model):
     nombre = models.CharField(unique=True, max_length=45, verbose_name="Nombre")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
 
+    def clean(self):
+        if not self.is_active and TipoMemoria.objects.filter(nombre=self.nombre, is_active=False).exclude(id_tipo_memoria=self.id_tipo_memoria).exists():
+            raise ValidationError("Ya existe un tipo de memoria inactivo con este nombre.")
+
     def __str__(self):
         return self.nombre
 
-class CaracteristicaEspecifica(models.Model):
-    id_caracteristica_especifica = models.AutoField(primary_key=True)
-    caracteristica = models.ForeignKey(Caracteristica, models.DO_NOTHING, verbose_name="Característica")
-    tipo_dispositivo = models.ForeignKey(TipoDispositivo, models.DO_NOTHING, verbose_name="Tipo de Dispositivo")
-    tipo_memoria = models.ForeignKey(TipoMemoria, models.DO_NOTHING, blank=True, null=True, verbose_name="Tipo de Memoria")
-    cantidad_memoria = models.ForeignKey(CantidadMemoria, models.DO_NOTHING, blank=True, null=True, verbose_name="Cantidad de Memoria")
-    tipo_procesador = models.CharField(max_length=45, blank=True, null=True, verbose_name="Tipo de Procesador")
-    velocidad_red = models.CharField(max_length=45, blank=True, null=True, verbose_name="Velocidad de Red")
-    interfaz_conexion = models.CharField(max_length=45, blank=True, null=True, verbose_name="Interfaz de Conexión")
-    is_active = models.BooleanField(default=True, verbose_name="Activo")
+class CaracteristicaTipoDispositivo(models.Model):
+    id_caracteristica_tipo = models.AutoField(primary_key=True)
+    caracteristica = models.ForeignKey(Caracteristica, on_delete=models.CASCADE, verbose_name="Característica")
+    tipo_dispositivo = models.ForeignKey(TipoDispositivo, on_delete=models.CASCADE, verbose_name="Tipo de Dispositivo")
+    obligatorio = models.BooleanField(default=False, verbose_name="Obligatorio")
+
+    class Meta:
+        unique_together = ('caracteristica', 'tipo_dispositivo')
 
     def __str__(self):
         return f"{self.caracteristica.nombre} ({self.tipo_dispositivo.nombre})"
@@ -104,41 +146,34 @@ class Dispositivo(models.Model):
     nomenclatura = models.CharField(unique=True, max_length=45, verbose_name="Nomenclatura")
     serie = models.CharField(max_length=45, blank=True, null=True, verbose_name="Número de Serie")
     jira = models.CharField(max_length=45, blank=True, null=True, verbose_name="Jira Ticket")
-    tipo_dispositivo = models.ForeignKey(TipoDispositivo, models.DO_NOTHING, verbose_name="Tipo de Dispositivo")
-    propietario = models.ForeignKey(settings.AUTH_USER_MODEL, models.DO_NOTHING, verbose_name="Propietario")
+    tipo_dispositivo = models.ForeignKey(TipoDispositivo, on_delete=models.DO_NOTHING, verbose_name="Tipo de Dispositivo")
+    propietario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, verbose_name="Propietario")
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
 
     def __str__(self):
         return self.nomenclatura
 
 class DispositivoCaracteristica(models.Model):
     id_dispositivo_caracteristica = models.AutoField(primary_key=True)
-    dispositivo_id_dispositivo = models.ForeignKey(Dispositivo, models.DO_NOTHING, db_column='dispositivo_id_dispositivo', verbose_name="Dispositivo")
-    caracteristica_especifica = models.ForeignKey(CaracteristicaEspecifica, models.DO_NOTHING, verbose_name="Característica Específica")
+    dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, verbose_name="Dispositivo")
+    caracteristica = models.ForeignKey(Caracteristica, on_delete=models.CASCADE, verbose_name="Característica")
     valor = models.CharField(max_length=45, verbose_name="Valor")
 
     class Meta:
-        db_table = 'dispositivo_caracteristica'
-        verbose_name = "Dispositivo Característica"
-        verbose_name_plural = "Dispositivos Características"
+        unique_together = ('dispositivo', 'caracteristica')
 
     def __str__(self):
-        return f"{self.dispositivo_id_dispositivo.nomenclatura} - {self.valor}"
+        return f"{self.dispositivo.nomenclatura} - {self.caracteristica.nombre}: {self.valor}"
 
 # Historiales
 class DispositivoEstado(models.Model):
     id_dispositivo_estado = models.AutoField(primary_key=True)
     fecha = models.DateField(verbose_name="Fecha")
     comentario = models.CharField(max_length=45, blank=True, null=True, verbose_name="Comentario")
-    dispositivo_id_dispositivo = models.ForeignKey(Dispositivo, models.CASCADE, db_column='dispositivo_id_dispositivo', verbose_name="Dispositivo")
-    estado_id_estado = models.ForeignKey('EstadoDispositivo', models.DO_NOTHING, db_column='estado_id_estado', verbose_name="Estado")
-    agente = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        models.SET_NULL,
-        blank=True,
-        null=True,
-        verbose_name="Agente del Cambio de Estado",
-        related_name='cambios_estado_dispositivo'
-    )
+    dispositivo_id_dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, db_column='dispositivo_id_dispositivo', verbose_name="Dispositivo")
+    estado_id_estado = models.ForeignKey('EstadoDispositivo', on_delete=models.DO_NOTHING, db_column='estado_id_estado', verbose_name="Estado")
+    agente = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=False, blank=False, verbose_name="Agente del Cambio de Estado", related_name='cambios_estado_dispositivo')
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
 
     class Meta:
         verbose_name = "Dispositivo Estado"
@@ -151,16 +186,10 @@ class DispositivoUbicacion(models.Model):
     id_dispositivo_ubicacion = models.AutoField(primary_key=True)
     fecha = models.DateField(verbose_name="Fecha")
     comentario = models.CharField(max_length=45, blank=True, null=True, verbose_name="Comentario")
-    dispositivo_id_dispositivo = models.ForeignKey(Dispositivo, models.CASCADE, db_column='dispositivo_id_dispositivo', verbose_name="Dispositivo")
-    ubicacion_id_ubicacion = models.ForeignKey('Ubicacion', models.DO_NOTHING, db_column='ubicacion_id_ubicacion', verbose_name="Ubicación")
-    agente = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        models.SET_NULL,
-        blank=True,
-        null=True,
-        verbose_name="Agente del Cambio de Ubicación",
-        related_name='cambios_ubicacion_dispositivo'
-    )
+    dispositivo_id_dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, db_column='dispositivo_id_dispositivo', verbose_name="Dispositivo")
+    ubicacion_id_ubicacion = models.ForeignKey('Ubicacion', on_delete=models.DO_NOTHING, db_column='ubicacion_id_ubicacion', verbose_name="Ubicación")
+    agente = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=False, blank=False, verbose_name="Agente del Cambio de Ubicación", related_name='cambios_ubicacion_dispositivo')
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
 
     class Meta:
         verbose_name = "Dispositivo Ubicación"
@@ -171,35 +200,13 @@ class DispositivoUbicacion(models.Model):
 
 class DispositivoPropietarioHistorico(models.Model):
     id_dispositivo_propietario_historico = models.AutoField(primary_key=True)
-    dispositivo = models.ForeignKey(Dispositivo, models.CASCADE, verbose_name="Dispositivo")
-    propietario_id_anterior = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        models.SET_NULL,
-        db_column='propietario_id_anterior',
-        blank=True,
-        null=True,
-        related_name='historico_anterior',
-        verbose_name="Propietario Anterior"
-    )
-    propietario_id_nuevo = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        models.SET_NULL,
-        db_column='propietario_id_nuevo',
-        related_name='historico_nuevo',
-        blank=True,
-        null=True,
-        verbose_name="Propietario Nuevo"
-    )
+    dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, verbose_name="Dispositivo")
+    propietario_id_anterior = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column='propietario_id_anterior', blank=True, null=True, related_name='historico_anterior', verbose_name="Propietario Anterior")
+    propietario_id_nuevo = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column='propietario_id_nuevo', related_name='historico_nuevo', blank=True, null=True, verbose_name="Propietario Nuevo")
     fecha_cambio = models.DateTimeField(verbose_name="Fecha de Cambio")
     comentario = models.CharField(max_length=255, blank=True, null=True, verbose_name="Comentario")
-    agente = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        models.SET_NULL,
-        blank=True,
-        null=True,
-        verbose_name="Agente del Cambio de Propietario",
-        related_name='cambios_propietario_historico'
-    )
+    agente = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=False, blank=False, verbose_name="Agente del Cambio de Propietario", related_name='cambios_propietario_historico')
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
 
     class Meta:
         verbose_name = "Dispositivo Propietario Histórico"
