@@ -20,19 +20,16 @@ class ClienteDashboardView(LoginRequiredMixin, TemplateView):
         context['dispositivos'] = dispositivos
         return context
 
-class GerenteDashboardView(LoginRequiredMixin, TemplateView):
-    template_name = 'inventario/gerente_dashboard.html'
+class JefeDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'inventario/jefe_dashboard.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         context['gerencia_usuario'] = user.gerencia
-        gerencia = user.gerencia
-        if gerencia:
-            ramas = gerencia.get_descendants(include_self=True)
-            dispositivos = Dispositivo.objects.filter(
-                propietario__gerencia__in=ramas, is_active=True
-            )
+        if user.gerencia:
+            ramas = user.gerencia.get_descendants(include_self=True)
+            dispositivos = Dispositivo.objects.filter(propietario__gerencia__in=ramas, is_active=True)
             for dispositivo in dispositivos:
                 dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
                     dispositivo_id_dispositivo=dispositivo, is_active=True
@@ -41,6 +38,64 @@ class GerenteDashboardView(LoginRequiredMixin, TemplateView):
                     dispositivo_id_dispositivo=dispositivo, is_active=True
                 ).order_by('-fecha').first()
             context['dispositivos'] = dispositivos
+        return context
+
+class SubgerenteDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'inventario/subgerente_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        context['gerencia_usuario'] = user.gerencia
+        if user.gerencia:
+            ramas = user.gerencia.get_descendants(include_self=True)
+            dispositivos = Dispositivo.objects.filter(propietario__gerencia__in=ramas, is_active=True)
+            for dispositivo in dispositivos:
+                dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
+                    dispositivo_id_dispositivo=dispositivo, is_active=True
+                ).order_by('-fecha').first()
+                dispositivo.ultimo_estado = DispositivoEstado.objects.filter(
+                    dispositivo_id_dispositivo=dispositivo, is_active=True
+                ).order_by('-fecha').first()
+            context['dispositivos'] = dispositivos
+        return context
+
+class GerenteDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'inventario/gerente_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        context['gerencia_usuario'] = user.gerencia
+        if user.gerencia:
+            ramas = user.gerencia.get_descendants(include_self=True)
+            dispositivos = Dispositivo.objects.filter(propietario__gerencia__in=ramas, is_active=True)
+            for dispositivo in dispositivos:
+                dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
+                    dispositivo_id_dispositivo=dispositivo, is_active=True
+                ).order_by('-fecha').first()
+                dispositivo.ultimo_estado = DispositivoEstado.objects.filter(
+                    dispositivo_id_dispositivo=dispositivo, is_active=True
+                ).order_by('-fecha').first()
+            context['dispositivos'] = dispositivos
+        return context
+
+class GerenteGeneralDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'inventario/gerente_general_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        context['gerencia_usuario'] = user.gerencia
+        dispositivos = Dispositivo.objects.filter(is_active=True)  # Ve todo
+        for dispositivo in dispositivos:
+            dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
+                dispositivo_id_dispositivo=dispositivo, is_active=True
+            ).order_by('-fecha').first()
+            dispositivo.ultimo_estado = DispositivoEstado.objects.filter(
+                dispositivo_id_dispositivo=dispositivo, is_active=True
+            ).order_by('-fecha').first()
+        context['dispositivos'] = dispositivos
         return context
 
 class AgenteDashboardView(LoginRequiredMixin, TemplateView):
