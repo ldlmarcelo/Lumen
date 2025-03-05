@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Característica</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Crear Característica</h1>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        <form method="post" id="caracteristicaForm">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary" id="submitBtn">Guardar</button>
+            <a href="{% url 'lista_dispositivos' %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+
+    <!-- Modal para validar procesador -->
+    <div class="modal fade" id="procesadorModal" tabindex="-1" aria-labelledby="procesadorModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="procesadorModalLabel">Confirmación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    No se ha asignado un procesador al equipo. ¿Aceptar/Cancelar?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="aceptarModal">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS y jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#caracteristicaForm').submit(function(e) {
+                e.preventDefault();
+                var formData = $(this).serialize();
+                $.ajax({
+                    url: '{% url "crear_caracteristica" %}',
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.error) {
+                            $('#procesadorModal').modal('show');
+                        } else {
+                            window.location.href = '{% url "lista_dispositivos" %}';
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Error al crear la característica: ' + error);
+                    }
+                });
+            });
+
+            $('#aceptarModal').click(function() {
+                $('#procesadorModal').modal('hide');
+                var formData = $('#caracteristicaForm').serialize();
+                $.ajax({
+                    url: '{% url "crear_caracteristica" %}',
+                    type: 'POST',
+                    data: formData + '&aceptar=true',
+                    success: function(response) {
+                        window.location.href = '{% url "lista_dispositivos" %}';
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Error al guardar la característica: ' + error);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
