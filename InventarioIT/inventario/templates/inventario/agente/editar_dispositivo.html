@@ -19,7 +19,7 @@
             {% csrf_token %}
             {{ form.as_p }}
             <button type="submit" class="btn btn-primary">Guardar</button>
-            <a href="{% url 'lista_dispositivos' %}" class="btn btn-secondary">Cancelar</a>
+            <a href="{% url 'inventario:lista_dispositivos' %}" class="btn btn-secondary">Cancelar</a>
         </form>
     </div>
     <!-- Bootstrap JS -->

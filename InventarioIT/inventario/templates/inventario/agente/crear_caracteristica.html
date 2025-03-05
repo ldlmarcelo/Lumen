@@ -19,7 +19,7 @@
             {% csrf_token %}
             {{ form.as_p }}
             <button type="submit" class="btn btn-primary" id="submitBtn">Guardar</button>
-            <a href="{% url 'lista_dispositivos' %}" class="btn btn-secondary">Cancelar</a>
+            <a href="{% url 'inventario:lista_dispositivos' %}" class="btn btn-secondary">Cancelar</a>
         </form>
     </div>
 
@@ -51,14 +51,14 @@
                 e.preventDefault();
                 var formData = $(this).serialize();
                 $.ajax({
-                    url: '{% url "crear_caracteristica" %}',
+                    url: '{% url "inventario:crear_caracteristica" %}',
                     type: 'POST',
                     data: formData,
                     success: function(response) {
                         if (response.error) {
                             $('#procesadorModal').modal('show');
                         } else {
-                            window.location.href = '{% url "lista_dispositivos" %}';
+                            window.location.href = '{% url "inventario:lista_dispositivos" %}';
                         }
                     },
                     error: function(xhr, status, error) {
@@ -71,11 +71,11 @@
                 $('#procesadorModal').modal('hide');
                 var formData = $('#caracteristicaForm').serialize();
                 $.ajax({
-                    url: '{% url "crear_caracteristica" %}',
+                    url: '{% url "inventario:crear_caracteristica" %}',
                     type: 'POST',
                     data: formData + '&aceptar=true',
                     success: function(response) {
-                        window.location.href = '{% url "lista_dispositivos" %}';
+                        window.location.href = '{% url "inventario:lista_dispositivos" %}';
                     },
                     error: function(xhr, status, error) {
                         alert('Error al guardar la característica: ' + error);

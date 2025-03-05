@@ -1,25 +1,79 @@
 <!DOCTYPE html>
-<html>
-<head><title>Agente Dashboard</title></head>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Agente</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
 <body>
-    <h1>Bienvenido, Agente: {{ request.user.username }} (Gerencia: {{ gerencia_usuario|default:"Sin gerencia" }})</h1>
-    <h2>Todos los Dispositivos</h2>
-    {% if dispositivos %}
-        <ul>
-        {% for dispositivo in dispositivos %}
-            <li>{{ dispositivo.nomenclatura }} - 
-                Propietario: {{ dispositivo.propietario }} ({{ dispositivo.propietario.gerencia|default:"Sin gerencia" }}) - 
-                Activo: {{ dispositivo.is_active|yesno:"Sí,No" }} - 
-                Ubicación: {{ dispositivo.ultima_ubicacion.ubicacion_id_ubicacion|default:"Sin ubicación" }} - 
-                Estado: {{ dispositivo.ultimo_estado.estado_id_estado|default:"Sin estado" }}</li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No hay dispositivos registrados.</p>
-    {% endif %}
-    <form method="post" action="{% url 'custom_auth:logout' %}">
-        {% csrf_token %}
-        <button type="submit">Cerrar Sesión</button>
-    </form>
+    <div class="container mt-5">
+        <h1>Bienvenido, Agente: {{ request.user.username }} (Gerencia: {{ request.user.gerencia.nombre }})</h1>
+        <div class="mb-3">
+            <a href="{% url 'inventario:lista_dispositivos' %}" class="btn btn-primary">Listar Dispositivos</a>
+            <a href="{% url 'inventario:crear_dispositivo' %}" class="btn btn-success">Crear Dispositivo</a>
+            <a href="{% url 'inventario:crear_caracteristica' %}" class="btn btn-info">Crear Característica</a>
+            <a href="{% url 'inventario:crear_estado' %}" class="btn btn-warning">Crear Estado</a>
+            <a href="{% url 'inventario:crear_ubicacion' %}" class="btn btn-secondary">Crear Ubicación</a>
+            <a href="{% url 'inventario:crear_propietario_historico' %}" class="btn btn-dark">Crear Cambio de Propietario</a>
+        </div>
+
+        <h2>Todos los Dispositivos</h2>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nomenclatura</th>
+                    <th>Tipo</th>
+                    <th>Subtipo</th>
+                    <th>Propietario</th>
+                    <th>Estado</th>
+                    <th>Ubicación</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dispositivo in dispositivos %}
+                    <tr>
+                        <td>{{ dispositivo.nomenclatura }}</td>
+                        <td>{{ dispositivo.tipo_dispositivo.nombre }}</td>
+                        <td>{{ dispositivo.subtipo_dispositivo.nombre }}</td>
+                        <td>{{ dispositivo.propietario.username }}</td>
+                        <td>
+                            {% if dispositivo.ultimo_estado %}
+                                {{ dispositivo.ultimo_estado.estado_id_estado.nombre }}
+                            {% else %}
+                                Sin estado
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dispositivo.ultima_ubicacion %}
+                                {{ dispositivo.ultima_ubicacion.ubicacion_id_ubicacion.agencia }} - Piso {{ dispositivo.ultima_ubicacion.ubicacion_id_ubicacion.piso }} - {{ dispositivo.ultima_ubicacion.ubicacion_id_ubicacion.zona }}
+                            {% else %}
+                                Sin ubicación
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'inventario:editar_dispositivo' dispositivo.pk %}" class="btn btn-sm btn-primary">Editar</a>
+                            <a href="{% url 'inventario:eliminar_dispositivo' dispositivo.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Formulario para cerrar sesión con método POST -->
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Cerrar Sesión</button>
+        </form>
+    </div>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

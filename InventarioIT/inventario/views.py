@@ -9,8 +9,7 @@ from .models import Dispositivo, DispositivoCaracteristica, DispositivoEstado, D
 from .forms import DispositivoForm, DispositivoCaracteristicaForm, DispositivoEstadoForm, DispositivoUbicacionForm, DispositivoPropietarioHistoricoForm
 from django.contrib.auth.models import Group
 
-
-
+# Dashboards por rol (vistas basadas en clases)
 class ClienteDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'inventario/cliente_dashboard.html'
 
@@ -18,7 +17,7 @@ class ClienteDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         context['gerencia_usuario'] = user.gerencia
-        dispositivos = Dispositivo.objects.filter(propietario=user, is_active=True)
+        dispositivos = Dispositivo.objects.filter(propietario=user)
         for dispositivo in dispositivos:
             dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
                 dispositivo_id_dispositivo=dispositivo, is_active=True
@@ -38,7 +37,7 @@ class JefeDashboardView(LoginRequiredMixin, TemplateView):
         context['gerencia_usuario'] = user.gerencia
         if user.gerencia:
             ramas = user.gerencia.get_descendants(include_self=True)
-            dispositivos = Dispositivo.objects.filter(propietario__gerencia__in=ramas, is_active=True)
+            dispositivos = Dispositivo.objects.filter(propietario__gerencia__in=ramas)
             for dispositivo in dispositivos:
                 dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
                     dispositivo_id_dispositivo=dispositivo, is_active=True
@@ -58,7 +57,7 @@ class SubgerenteDashboardView(LoginRequiredMixin, TemplateView):
         context['gerencia_usuario'] = user.gerencia
         if user.gerencia:
             ramas = user.gerencia.get_descendants(include_self=True)
-            dispositivos = Dispositivo.objects.filter(propietario__gerencia__in=ramas, is_active=True)
+            dispositivos = Dispositivo.objects.filter(propietario__gerencia__in=ramas)
             for dispositivo in dispositivos:
                 dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
                     dispositivo_id_dispositivo=dispositivo, is_active=True
@@ -78,7 +77,7 @@ class GerenteDashboardView(LoginRequiredMixin, TemplateView):
         context['gerencia_usuario'] = user.gerencia
         if user.gerencia:
             ramas = user.gerencia.get_descendants(include_self=True)
-            dispositivos = Dispositivo.objects.filter(propietario__gerencia__in=ramas, is_active=True)
+            dispositivos = Dispositivo.objects.filter(propietario__gerencia__in=ramas)
             for dispositivo in dispositivos:
                 dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
                     dispositivo_id_dispositivo=dispositivo, is_active=True
@@ -96,7 +95,7 @@ class GerenteGeneralDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         context['gerencia_usuario'] = user.gerencia
-        dispositivos = Dispositivo.objects.filter(is_active=True)  # Ve todo
+        dispositivos = Dispositivo.objects.all()  # Sin filtro is_active=True, ve todos
         for dispositivo in dispositivos:
             dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
                 dispositivo_id_dispositivo=dispositivo, is_active=True
@@ -114,7 +113,7 @@ class AgenteDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         context['gerencia_usuario'] = user.gerencia
-        dispositivos = Dispositivo.objects.all()
+        dispositivos = Dispositivo.objects.all()  # Sin filtro is_active=True, ve todos
         for dispositivo in dispositivos:
             dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
                 dispositivo_id_dispositivo=dispositivo, is_active=True
@@ -132,7 +131,7 @@ class AdminDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         context['gerencia_usuario'] = user.gerencia
-        dispositivos = Dispositivo.objects.all()
+        dispositivos = Dispositivo.objects.all()  # Sin filtro is_active=True, ve todos
         for dispositivo in dispositivos:
             dispositivo.ultima_ubicacion = DispositivoUbicacion.objects.filter(
                 dispositivo_id_dispositivo=dispositivo, is_active=True
@@ -143,19 +142,17 @@ class AdminDashboardView(LoginRequiredMixin, TemplateView):
         context['dispositivos'] = dispositivos
         return context
 
-        # Decorador para verificar rol Agente
 # Decorador para verificar rol Agente
 def is_agente(user):
     return user.is_authenticated and user.groups.filter(name='Agente').exists()
 
-# Vista para listar dispositivos
+# CRUD de dispositivos (vistas basadas en funciones para el rol Agente)
 @login_required
 @user_passes_test(is_agente)
 def lista_dispositivos(request):
     dispositivos = Dispositivo.objects.all()
     return render(request, 'inventario/agente/lista_dispositivos.html', {'dispositivos': dispositivos})
 
-# Vista para crear un dispositivo
 @login_required
 @user_passes_test(is_agente)
 def crear_dispositivo(request):
@@ -169,7 +166,6 @@ def crear_dispositivo(request):
         form = DispositivoForm()
     return render(request, 'inventario/agente/crear_dispositivo.html', {'form': form})
 
-# Vista para editar un dispositivo
 @login_required
 @user_passes_test(is_agente)
 def editar_dispositivo(request, pk):
@@ -184,7 +180,6 @@ def editar_dispositivo(request, pk):
         form = DispositivoForm(instance=dispositivo)
     return render(request, 'inventario/agente/editar_dispositivo.html', {'form': form, 'dispositivo': dispositivo})
 
-# Vista para eliminar un dispositivo
 @login_required
 @user_passes_test(is_agente)
 def eliminar_dispositivo(request, pk):
@@ -195,7 +190,6 @@ def eliminar_dispositivo(request, pk):
         return redirect('lista_dispositivos')
     return render(request, 'inventario/agente/confirmar_eliminar_dispositivo.html', {'dispositivo': dispositivo})
 
-# Vista para crear una característica de dispositivo
 @login_required
 @user_passes_test(is_agente)
 def crear_caracteristica(request):
@@ -214,7 +208,6 @@ def crear_caracteristica(request):
         form = DispositivoCaracteristicaForm()
     return render(request, 'inventario/agente/crear_caracteristica.html', {'form': form})
 
-# Vista para crear un estado de dispositivo
 @login_required
 @user_passes_test(is_agente)
 def crear_estado(request):
@@ -230,7 +223,6 @@ def crear_estado(request):
         form = DispositivoEstadoForm()
     return render(request, 'inventario/agente/crear_estado.html', {'form': form})
 
-# Vista para crear una ubicación de dispositivo
 @login_required
 @user_passes_test(is_agente)
 def crear_ubicacion(request):
@@ -246,7 +238,6 @@ def crear_ubicacion(request):
         form = DispositivoUbicacionForm()
     return render(request, 'inventario/agente/crear_ubicacion.html', {'form': form})
 
-# Vista para crear un cambio de propietario de dispositivo
 @login_required
 @user_passes_test(is_agente)
 def crear_propietario_historico(request):
