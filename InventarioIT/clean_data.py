@@ -1,37 +1,54 @@
 import os
 import django
+import sqlite3
 
+# Configurar el entorno de Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'InventarioIT.settings')
 django.setup()
 
-from django.apps import apps
-from django.db import connection
+from django.conf import settings
 
-# Lista de modelos a limpiar (ajusta según necesites)
-models_to_clear = [
-    'custom_auth.customuser',
-    'inventario.gerencia',
-    'inventario.tipodispositivo',
-    'inventario.subtipodispositivo',
-    'inventario.estadodispositivo',
-    'inventario.ubicacion',
-    'inventario.marca',
-    'inventario.modelo',
-    'inventario.caracteristica',
-    'inventario.caracteristicatipodispositivo',
-    'inventario.dispositivo',
-    'inventario.dispositivocaracteristica',
-    'inventario.dispositivoubicacion',
-    'inventario.dispositivoestado',
-    'inventario.dispositivopropietariohistorico',
+# Conectar a la base de datos SQLite
+conn = sqlite3.connect(settings.DATABASES['default']['NAME'])  # 'db.sqlite3'
+cursor = conn.cursor()
+
+# Lista de tablas de custom_auth e inventario, en orden inverso de dependencias
+tables_to_clean = [
+    # Tablas de inventario (orden inverso de dependencias)
+    'inventario_dispositivopropietariohistorico',
+    'inventario_dispositivoubicacion',
+    'inventario_dispositivoestado',
+    'inventario_dispositivocaracteristica',
+    'inventario_caracteristicatipodispositivo',
+    'inventario_dispositivo',
+    'inventario_procesador',
+    'inventario_modelo',
+    'inventario_ubicacion',
+    'inventario_estadodispositivo',
+    'inventario_subtipodispositivo',
+    'inventario_tipodispositivo',
+    'inventario_caracteristica',
+    'inventario_cantidadmemoria',
+    'inventario_tipomemoria',
+    'inventario_marca',
+    'inventario_gerencia',
+    # Tablas de custom_auth (orden inverso de dependencias)
+    'custom_auth_customuser_user_permissions',
+    'custom_auth_customuser_groups',
+    'custom_auth_customuser',
 ]
 
-for model_name in models_to_clear:
+# Limpiar cada tabla
+for table in tables_to_clean:
     try:
-        model = apps.get_model(model_name)
-        model.objects.all().delete()
-        print(f"Limpiados datos de {model_name}")
-    except Exception as e:
-        print(f"Error limpiando {model_name}: {e}")
+        cursor.execute(f"DELETE FROM {table}")
+        print(f"Limpios {cursor.rowcount} registros de {table}")
+    except sqlite3.OperationalError as e:
+        print(f"Error al limpiar {table}: {e}")
 
-print("Datos limpiados exitosamente.")
+# Confirmar los cambios en la base de datos
+conn.commit()
+print("Base de datos limpiada exitosamente.")
+
+# Cerrar la conexión
+conn.close()
