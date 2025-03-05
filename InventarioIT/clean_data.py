@@ -5,12 +5,14 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'InventarioIT.settings')
 django.setup()
 
 from django.apps import apps
+from django.db import connection
 
-# Lista de modelos a limpiar (ajusta según necesites, quitando SubtipoDispositivo)
+# Lista de modelos a limpiar (ajusta según necesites)
 models_to_clear = [
     'custom_auth.customuser',
     'inventario.gerencia',
     'inventario.tipodispositivo',
+    'inventario.subtipodispositivo',
     'inventario.estadodispositivo',
     'inventario.ubicacion',
     'inventario.marca',
@@ -22,8 +24,6 @@ models_to_clear = [
     'inventario.dispositivoubicacion',
     'inventario.dispositivoestado',
     'inventario.dispositivopropietariohistorico',
-    'inventario.tipoMemoria',
-    'inventario.cantidadMemoria',
 ]
 
 for model_name in models_to_clear:

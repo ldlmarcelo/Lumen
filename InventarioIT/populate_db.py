@@ -120,37 +120,4 @@ def populate_db():
     print_capacitacion = Dispositivo.objects.create(nomenclatura="PRINT-CAP-001", tipo_dispositivo=tipo_periferico, propietario=jefe_capacitacion, is_active=True)
 
     # Características
-    DispositivoCaracteristica.objects.create(dispositivo=pc_redes1, caracteristica=carac_procesador, valor="Intel i5")
-    DispositivoCaracteristica.objects.create(dispositivo=pc_redes1, caracteristica=carac_ram, valor="8GB")
-    DispositivoCaracteristica.objects.create(dispositivo=pc_redes2, caracteristica=carac_procesador, valor="Intel i7")
-    DispositivoCaracteristica.objects.create(dispositivo=sw_redes, caracteristica=carac_velocidad, valor="1Gbps")
-    DispositivoCaracteristica.objects.create(dispositivo=print_capacitacion, caracteristica=carac_tipo, valor="Impresora")
-
-    # Historiales
-    DispositivoEstado.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_redes1, estado_id_estado=estado_activo, agente=agente)
-    DispositivoEstado.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_redes2, estado_id_estado=estado_reparacion, agente=agente)
-    DispositivoEstado.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=sw_redes, estado_id_estado=estado_activo, agente=agente)
-    DispositivoEstado.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_soporte, estado_id_estado=estado_activo, agente=agente)
-    DispositivoEstado.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_personal, estado_id_estado=estado_baja, agente=agente)
-    DispositivoEstado.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_capacitacion, estado_id_estado=estado_activo, agente=agente)
-    DispositivoEstado.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=print_capacitacion, estado_id_estado=estado_activo, agente=agente)
-
-    DispositivoUbicacion.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_redes1, ubicacion_id_ubicacion=ubicacion_central, agente=agente)
-    DispositivoUbicacion.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_redes2, ubicacion_id_ubicacion=ubicacion_norte, agente=agente)
-    DispositivoUbicacion.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=sw_redes, ubicacion_id_ubicacion=ubicacion_central, agente=agente)
-    DispositivoUbicacion.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_soporte, ubicacion_id_ubicacion=ubicacion_sur, agente=agente)
-    DispositivoUbicacion.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_personal, ubicacion_id_ubicacion=ubicacion_sur, agente=agente)
-    DispositivoUbicacion.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=pc_capacitacion, ubicacion_id_ubicacion=ubicacion_norte, agente=agente)
-    DispositivoUbicacion.objects.create(fecha="2025-03-01", dispositivo_id_dispositivo=print_capacitacion, ubicacion_id_ubicacion=ubicacion_norte, agente=agente)
-
-    DispositivoPropietarioHistorico.objects.create(
-        dispositivo=pc_redes1, propietario_id_nuevo=cliente_redes1, fecha_cambio=datetime.now(), agente=agente
-    )
-    DispositivoPropietarioHistorico.objects.create(
-        dispositivo=sw_redes, propietario_id_nuevo=jefe_redes, fecha_cambio=datetime.now(), agente=agente
-    )
-
-    print("Base de datos poblada con éxito.")
-
-if __name__ == "__main__":
-    populate_db()
+    DispositivoCaracter

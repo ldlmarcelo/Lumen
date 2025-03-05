@@ -33,6 +33,48 @@ class TipoDispositivo(models.Model):
     def __str__(self):
         return self.nombre
 
+class SubtipoDispositivo(models.Model):
+    id_subtipo_dispositivo = models.AutoField(primary_key=True)
+    tipo_dispositivo = models.ForeignKey(TipoDispositivo, on_delete=models.CASCADE, verbose_name="Tipo de Dispositivo")
+    nombre = models.CharField(max_length=45, verbose_name="Nombre")
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
+
+    class Meta:
+        unique_together = ('tipo_dispositivo', 'nombre')
+
+    def clean(self):
+        if not self.is_active and SubtipoDispositivo.objects.filter(
+            tipo_dispositivo=self.tipo_dispositivo, nombre=self.nombre, is_active=False
+        ).exclude(id_subtipo_dispositivo=self.id_subtipo_dispositivo).exists():
+            raise ValidationError("Ya existe un subtipo inactivo con este nombre para este tipo.")
+
+    def __str__(self):
+        return f"{self.tipo_dispositivo.nombre} - {self.nombre}"
+
+class Caracteristica(models.Model):
+    id_caracteristica = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=45, unique=True, verbose_name="Nombre")
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
+
+    def clean(self):
+        if not self.is_active and Caracteristica.objects.filter(nombre=self.nombre, is_active=False).exclude(id_caracteristica=self.id_caracteristica).exists():
+            raise ValidationError("Ya existe una característica inactiva con este nombre.")
+
+    def __str__(self):
+        return self.nombre
+
+class CaracteristicaTipoDispositivo(models.Model):
+    id_caracteristica_tipo = models.AutoField(primary_key=True)
+    caracteristica = models.ForeignKey(Caracteristica, on_delete=models.CASCADE, verbose_name="Característica")
+    subtipo_dispositivo = models.ForeignKey(SubtipoDispositivo, on_delete=models.CASCADE, verbose_name="Subtipo de Dispositivo")
+    obligatorio = models.BooleanField(default=False, verbose_name="Obligatorio")
+
+    class Meta:
+        unique_together = ('caracteristica', 'subtipo_dispositivo')
+
+    def __str__(self):
+        return f"{self.caracteristica.nombre} ({self.subtipo_dispositivo})"
+    
 class EstadoDispositivo(models.Model):
     id_estado_dispositivo = models.AutoField(primary_key=True)
     nombre = models.CharField(unique=True, max_length=45, verbose_name='Nombre')
@@ -92,18 +134,6 @@ class Modelo(models.Model):
     def __str__(self):
         return f"{self.marca_id_marca.nombre} - {self.nombre}"
 
-class Caracteristica(models.Model):
-    id_caracteristica = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=45, unique=True, verbose_name="Nombre")
-    is_active = models.BooleanField(default=True, verbose_name="Activo")
-
-    def clean(self):
-        if not self.is_active and Caracteristica.objects.filter(nombre=self.nombre, is_active=False).exclude(id_caracteristica=self.id_caracteristica).exists():
-            raise ValidationError("Ya existe una característica inactiva con este nombre.")
-
-    def __str__(self):
-        return self.nombre
-
 class CantidadMemoria(models.Model):
     id_cantidad_memoria = models.AutoField(primary_key=True)
     cantidad = models.IntegerField(unique=True, verbose_name="Cantidad (GB)")
@@ -128,17 +158,23 @@ class TipoMemoria(models.Model):
     def __str__(self):
         return self.nombre
 
-class CaracteristicaTipoDispositivo(models.Model):
-    id_caracteristica_tipo = models.AutoField(primary_key=True)
-    caracteristica = models.ForeignKey(Caracteristica, on_delete=models.CASCADE, verbose_name="Característica")
-    tipo_dispositivo = models.ForeignKey(TipoDispositivo, on_delete=models.CASCADE, verbose_name="Tipo de Dispositivo")
-    obligatorio = models.BooleanField(default=False, verbose_name="Obligatorio")
+class Procesador(models.Model):
+    id_procesador = models.AutoField(primary_key=True)
+    marca = models.ForeignKey(Marca, on_delete=models.DO_NOTHING, verbose_name="Marca")
+    modelo = models.CharField(max_length=100, unique=True, verbose_name="Modelo")
+    velocidad = models.CharField(max_length=20, verbose_name="Velocidad (GHz)")  # Ej. "2.4 GHz"
+    nucleos = models.PositiveIntegerField(verbose_name="Núcleos")
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
 
     class Meta:
-        unique_together = ('caracteristica', 'tipo_dispositivo')
+        unique_together = ('marca', 'modelo')
+
+    def clean(self):
+        if not self.is_active and Procesador.objects.filter(marca=self.marca, modelo=self.modelo, is_active=False).exclude(id_procesador=self.id_procesador).exists():
+            raise ValidationError("Ya existe un procesador inactivo con esta marca y modelo.")
 
     def __str__(self):
-        return f"{self.caracteristica.nombre} ({self.tipo_dispositivo.nombre})"
+        return f"{self.marca.nombre} {self.modelo} ({self.velocidad}, {self.nucleos} núcleos)"
 
 # Dispositivos
 class Dispositivo(models.Model):
@@ -147,23 +183,44 @@ class Dispositivo(models.Model):
     serie = models.CharField(max_length=45, blank=True, null=True, verbose_name="Número de Serie")
     jira = models.CharField(max_length=45, blank=True, null=True, verbose_name="Jira Ticket")
     tipo_dispositivo = models.ForeignKey(TipoDispositivo, on_delete=models.DO_NOTHING, verbose_name="Tipo de Dispositivo")
+    subtipo_dispositivo = models.ForeignKey(SubtipoDispositivo, on_delete=models.DO_NOTHING, verbose_name="Subtipo de Dispositivo")
     propietario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, verbose_name="Propietario")
     is_active = models.BooleanField(default=True, verbose_name="Activo")
 
     def __str__(self):
         return self.nomenclatura
-
+    
 class DispositivoCaracteristica(models.Model):
     id_dispositivo_caracteristica = models.AutoField(primary_key=True)
     dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, verbose_name="Dispositivo")
-    caracteristica = models.ForeignKey(Caracteristica, on_delete=models.CASCADE, verbose_name="Característica")
-    valor = models.CharField(max_length=45, verbose_name="Valor")
+    caracteristica = models.ForeignKey(Caracteristica, on_delete=models.CASCADE, verbose_name="Característica", null=True, blank=True)
+    procesador = models.ForeignKey(Procesador, on_delete=models.CASCADE, verbose_name="Procesador", null=True, blank=True)
+    valor = models.CharField(max_length=45, null=True, blank=True, verbose_name="Valor")  # Mantener para características no procesadores
 
     class Meta:
-        unique_together = ('dispositivo', 'caracteristica')
+        unique_together = ('dispositivo', 'caracteristica', 'procesador')
+
+    def clean(self):
+        if not self.dispositivo or not self.dispositivo.tipo_dispositivo:
+            raise ValidationError("El dispositivo debe estar definido y tener un tipo.")
+        
+        if self.dispositivo.tipo_dispositivo.nombre == "De cómputo":
+            if not self.procesador:
+                raise ValidationError({
+                    'procesador': "No se ha asignado un procesador al equipo. Se guardará sin procesador, pero considera asignar uno para completar la información."
+                })
+        elif self.procesador:
+            raise ValidationError("Los dispositivos que no son tipo 'De cómputo' no pueden tener un procesador asignado.")
+
+        if self.caracteristica and self.procesador:
+            raise ValidationError("No se puede asignar tanto una característica como un procesador a la misma relación.")
 
     def __str__(self):
-        return f"{self.dispositivo.nomenclatura} - {self.caracteristica.nombre}: {self.valor}"
+        if self.procesador:
+            return f"{self.dispositivo.nomenclatura} - Procesador: {self.procesador}"
+        if self.caracteristica:
+            return f"{self.dispositivo.nomenclatura} - {self.caracteristica.nombre}: {self.valor}"
+        return f"{self.dispositivo.nomenclatura} - Característica no especificada"
 
 # Historiales
 class DispositivoEstado(models.Model):
