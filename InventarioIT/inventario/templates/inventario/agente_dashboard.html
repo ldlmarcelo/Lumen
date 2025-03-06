@@ -6,26 +6,33 @@
     <title>Dashboard Agente</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- jQuery y DataTables CSS/JS para ordenamiento y búsqueda -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 </head>
 <body>
     <div class="container mt-5">
         <h1>Bienvenido, Agente: {{ request.user.username }} (Gerencia: {{ request.user.gerencia.nombre }})</h1>
+
+        <!-- Botón temporal para Crear Dispositivo -->
         <div class="mb-3">
-            <a href="{% url 'inventario:lista_dispositivos' %}" class="btn btn-primary">Listar Dispositivos</a>
             <a href="{% url 'inventario:crear_dispositivo' %}" class="btn btn-success">Crear Dispositivo</a>
-            <a href="{% url 'inventario:crear_caracteristica' %}" class="btn btn-info">Crear Característica</a>
-            <a href="{% url 'inventario:crear_estado' %}" class="btn btn-warning">Crear Estado</a>
-            <a href="{% url 'inventario:crear_ubicacion' %}" class="btn btn-secondary">Crear Ubicación</a>
-            <a href="{% url 'inventario:crear_propietario_historico' %}" class="btn btn-dark">Crear Cambio de Propietario</a>
         </div>
 
         <h2>Todos los Dispositivos</h2>
+        <!-- Filtro de búsqueda -->
+        <div class="mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Buscar dispositivos..." style="max-width: 300px;">
+        </div>
+
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }}">{{ message }}</div>
             {% endfor %}
         {% endif %}
-        <table class="table table-striped">
+        <table id="dispositivosTable" class="table table-striped">
             <thead>
                 <tr>
                     <th>Nomenclatura</th>
@@ -61,6 +68,7 @@
                         <td>
                             <a href="{% url 'inventario:editar_dispositivo' dispositivo.pk %}" class="btn btn-sm btn-primary">Editar</a>
                             <a href="{% url 'inventario:eliminar_dispositivo' dispositivo.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                            <a href="#" class="btn btn-sm btn-info" disabled>Ver</a> <!-- Botón "Ver" deshabilitado por ahora -->
                         </td>
                     </tr>
                 {% endfor %}
@@ -70,10 +78,28 @@
         <!-- Formulario para cerrar sesión con método POST -->
         <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-danger">Cerrar Sesión</button>
+            <button type="submit" class="btn btn-danger mt-3">Cerrar Sesión</button>
         </form>
     </div>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script para DataTables y búsqueda -->
+    <script>
+        $(document).ready(function() {
+            $('#dispositivosTable').DataTable({
+                "paging": false, // Desactivamos paginación por ahora
+                "ordering": true, // Habilitamos ordenamiento por columnas
+                "info": false,
+                "searching": false // Desactivamos búsqueda interna de DataTables por ahora
+            });
+
+            // Búsqueda personalizada
+            $('#searchInput').on('keyup', function() {
+                var value = $(this).val().toLowerCase();
+                $('#dispositivosTable tbody tr').filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+        });
+    </script>
 </body>
 </html>

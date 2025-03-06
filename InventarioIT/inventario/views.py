@@ -161,7 +161,7 @@ def crear_dispositivo(request):
         if form.is_valid():
             dispositivo = form.save()
             messages.success(request, 'Dispositivo creado exitosamente.')
-            return redirect('lista_dispositivos')
+            return redirect('inventario:agente_dashboard')  # Ajuste aquí
     else:
         form = DispositivoForm()
     return render(request, 'inventario/agente/crear_dispositivo.html', {'form': form})
@@ -175,7 +175,7 @@ def editar_dispositivo(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, 'Dispositivo actualizado exitosamente.')
-            return redirect('lista_dispositivos')
+            return redirect('inventario:agente_dashboard')  # Ajuste aquí
     else:
         form = DispositivoForm(instance=dispositivo)
     return render(request, 'inventario/agente/editar_dispositivo.html', {'form': form, 'dispositivo': dispositivo})
@@ -187,7 +187,7 @@ def eliminar_dispositivo(request, pk):
     if request.method == 'POST':
         dispositivo.delete()
         messages.success(request, 'Dispositivo eliminado exitosamente.')
-        return redirect('lista_dispositivos')
+        return redirect('inventario:agente_dashboard')  # Ajuste aquí
     return render(request, 'inventario/agente/confirmar_eliminar_dispositivo.html', {'dispositivo': dispositivo})
 
 @login_required
@@ -203,7 +203,7 @@ def crear_caracteristica(request):
                     return JsonResponse({'error': 'No se ha asignado un procesador al equipo. ¿Aceptar/Cancelar?'}, status=400)
             caracteristica.save()
             messages.success(request, 'Característica creada exitosamente.')
-            return redirect('lista_dispositivos')
+            return redirect('inventario:agente_dashboard')  # Ajuste aquí
     else:
         form = DispositivoCaracteristicaForm()
     return render(request, 'inventario/agente/crear_caracteristica.html', {'form': form})
@@ -218,7 +218,7 @@ def crear_estado(request):
             estado.agente = request.user
             estado.save()
             messages.success(request, 'Estado creado exitosamente.')
-            return redirect('lista_dispositivos')
+            return redirect('inventario:agente_dashboard')  # Ajuste aquí
     else:
         form = DispositivoEstadoForm()
     return render(request, 'inventario/agente/crear_estado.html', {'form': form})
@@ -233,7 +233,7 @@ def crear_ubicacion(request):
             ubicacion.agente = request.user
             ubicacion.save()
             messages.success(request, 'Ubicación creada exitosamente.')
-            return redirect('lista_dispositivos')
+            return redirect('inventario:agente_dashboard')  # Ajuste aquí
     else:
         form = DispositivoUbicacionForm()
     return render(request, 'inventario/agente/crear_ubicacion.html', {'form': form})
@@ -248,7 +248,7 @@ def crear_propietario_historico(request):
             historico.agente = request.user
             historico.save()
             messages.success(request, 'Cambio de propietario creado exitosamente.')
-            return redirect('lista_dispositivos')
+            return redirect('inventario:agente_dashboard')  # Ajuste aquí
     else:
         form = DispositivoPropietarioHistoricoForm()
     return render(request, 'inventario/agente/crear_propietario_historico.html', {'form': form})
