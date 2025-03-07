@@ -1,123 +1,127 @@
-import os
-import django
-from datetime import datetime
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'InventarioIT.settings')
-django.setup()
-
-from django.contrib.auth.models import Group
+import datetime
+from django.db import transaction
+from django.contrib.auth.hashers import make_password
 from custom_auth.models import CustomUser
 from inventario.models import (
-    Gerencia, TipoDispositivo, EstadoDispositivo, Ubicacion, Marca, Modelo,
-    Caracteristica, CaracteristicaTipoDispositivo, Dispositivo,
+    Gerencia, TipoDispositivo, SubtipoDispositivo, Caracteristica,
+    CaracteristicaTipoDispositivo, EstadoDispositivo, Ubicacion, Marca,
+    Modelo, CantidadMemoria, TipoMemoria, Procesador, Dispositivo,
     DispositivoCaracteristica, DispositivoEstado, DispositivoUbicacion,
     DispositivoPropietarioHistorico
 )
 
+@transaction.atomic
 def populate_db():
-    # Crear grupos
-    for group_name in ['Cliente', 'Jefe', 'Subgerente', 'Gerente', 'Gerente General', 'Agente', 'Administrador']:
-        Group.objects.get_or_create(name=group_name)
+    print("Poblando la base de datos...")
 
-    # Crear gerencias (jerarquía)
-    gerencia_general = Gerencia.objects.create(nombre="Gerencia General")
-    gerencia_operativa = Gerencia.objects.create(nombre="Gerencia Operativa", parent=gerencia_general)
-    subgerencia_it = Gerencia.objects.create(nombre="Subgerencia IT", parent=gerencia_operativa)
-    jefatura_redes = Gerencia.objects.create(nombre="Jefatura Redes", parent=subgerencia_it)
-    jefatura_soporte = Gerencia.objects.create(nombre="Jefatura Soporte", parent=subgerencia_it)
-    gerencia_rrhh = Gerencia.objects.create(nombre="Gerencia RRHH", parent=gerencia_general)
-    subgerencia_recursos = Gerencia.objects.create(nombre="Subgerencia Recursos", parent=gerencia_rrhh)
-    jefatura_personal = Gerencia.objects.create(nombre="Jefatura Personal", parent=subgerencia_recursos)
-    jefatura_capacitacion = Gerencia.objects.create(nombre="Jefatura Capacitación", parent=gerencia_rrhh)
+    # 1. Crear Gerencias (estructura jerárquica)
+    gerencia_general = Gerencia.objects.create(nombre="Gerencia General", is_active=True)
+    gerencia_it = Gerencia.objects.create(nombre="Gerencia IT", parent=gerencia_general, is_active=True)
+    jefatura_redes = Gerencia.objects.create(nombre="Jefatura Redes", parent=gerencia_it, is_active=True)
+    jefatura_soporte = Gerencia.objects.create(nombre="Jefatura Soporte", parent=gerencia_it, is_active=True)
 
-    # Crear usuarios
-    gerente_general = CustomUser.objects.create_user(username='gerente_general', password='pass123', gerencia=gerencia_general)
-    gerente_general.groups.add(Group.objects.get(name='Gerente General'))
+    # 2. Crear usuarios con diferentes roles
+    admin = CustomUser.objects.create(
+        username="admin", password=make_password("admin123"), is_superuser=True, is_staff=True
+    )
+    gerente_general = CustomUser.objects.create(
+        username="gerente_general", password=make_password("gerente123"), gerencia=gerencia_general
+    )
+    gerente_it = CustomUser.objects.create(
+        username="gerente_it", password=make_password("gerenteit123"), gerencia=gerencia_it
+    )
+    subgerente_redes = CustomUser.objects.create(
+        username="subgerente_redes", password=make_password("subgerente123"), gerencia=jefatura_redes
+    )
+    jefe_soporte = CustomUser.objects.create(
+        username="jefe_soporte", password=make_password("jefe123"), gerencia=jefatura_soporte
+    )
+    cliente = CustomUser.objects.create(
+        username="cliente", password=make_password("cliente123"), gerencia=jefatura_soporte
+    )
+    agente = CustomUser.objects.create(
+        username="agente", password=make_password("agente123"), gerencia=jefatura_soporte
+    )
 
-    gerente_operativa = CustomUser.objects.create_user(username='gerente_operativa', password='pass123', gerencia=gerencia_operativa)
-    gerente_operativa.groups.add(Group.objects.get(name='Gerente'))
+    # 3. Crear catálogos
+    # Tipos de dispositivos
+    tipo_computo = TipoDispositivo.objects.create(nombre="De cómputo", is_active=True)
+    tipo_red = TipoDispositivo.objects.create(nombre="De Red", is_active=True)
+    tipo_periferico = TipoDispositivo.objects.create(nombre="Periférico", is_active=True)
 
-    gerente_rrhh = CustomUser.objects.create_user(username='gerente_rrhh', password='pass123', gerencia=gerencia_rrhh)
-    gerente_rrhh.groups.add(Group.objects.get(name='Gerente'))
-
-    subgerente_it = CustomUser.objects.create_user(username='subgerente_it', password='pass123', gerencia=subgerencia_it)
-    subgerente_it.groups.add(Group.objects.get(name='Subgerente'))
-
-    subgerente_recursos = CustomUser.objects.create_user(username='subgerente_recursos', password='pass123', gerencia=subgerencia_recursos)
-    subgerente_recursos.groups.add(Group.objects.get(name='Subgerente'))
-
-    jefe_redes = CustomUser.objects.create_user(username='jefe_redes', password='pass123', gerencia=jefatura_redes)
-    jefe_redes.groups.add(Group.objects.get(name='Jefe'))
-
-    jefe_soporte = CustomUser.objects.create_user(username='jefe_soporte', password='pass123', gerencia=jefatura_soporte)
-    jefe_soporte.groups.add(Group.objects.get(name='Jefe'))
-
-    jefe_personal = CustomUser.objects.create_user(username='jefe_personal', password='pass123', gerencia=jefatura_personal)
-    jefe_personal.groups.add(Group.objects.get(name='Jefe'))
-
-    jefe_capacitacion = CustomUser.objects.create_user(username='jefe_capacitacion', password='pass123', gerencia=jefatura_capacitacion)
-    jefe_capacitacion.groups.add(Group.objects.get(name='Jefe'))
-
-    cliente_redes1 = CustomUser.objects.create_user(username='cliente_redes1', password='pass123', gerencia=jefatura_redes)
-    cliente_redes1.groups.add(Group.objects.get(name='Cliente'))
-
-    cliente_redes2 = CustomUser.objects.create_user(username='cliente_redes2', password='pass123', gerencia=jefatura_redes)
-    cliente_redes2.groups.add(Group.objects.get(name='Cliente'))
-
-    cliente_soporte = CustomUser.objects.create_user(username='cliente_soporte', password='pass123', gerencia=jefatura_soporte)
-    cliente_soporte.groups.add(Group.objects.get(name='Cliente'))
-
-    cliente_personal = CustomUser.objects.create_user(username='cliente_personal', password='pass123', gerencia=jefatura_personal)
-    cliente_personal.groups.add(Group.objects.get(name='Cliente'))
-
-    cliente_capacitacion = CustomUser.objects.create_user(username='cliente_capacitacion', password='pass123', gerencia=jefatura_capacitacion)
-    cliente_capacitacion.groups.add(Group.objects.get(name='Cliente'))
-
-    agente = CustomUser.objects.create_user(username='agente1', password='pass123', gerencia=subgerencia_it)
-    agente.groups.add(Group.objects.get(name='Agente'))
-
-    admin = CustomUser.objects.create_superuser(username='admin', password='admin123', email='admin@example.com')
-    admin.groups.add(Group.objects.get(name='Administrador'))
-
-    # Crear catálogos
-    tipo_computo = TipoDispositivo.objects.create(nombre="De cómputo")
-    tipo_red = TipoDispositivo.objects.create(nombre="De red")
-    tipo_periferico = TipoDispositivo.objects.create(nombre="Periférico")
-
-    estado_activo = EstadoDispositivo.objects.create(nombre="Activo")
-    estado_reparacion = EstadoDispositivo.objects.create(nombre="En reparación")
-    estado_baja = EstadoDispositivo.objects.create(nombre="Dado de baja")
-
-    ubicacion_central = Ubicacion.objects.create(agencia="Agencia Central", piso="1", zona="Norte")
-    ubicacion_sur = Ubicacion.objects.create(agencia="Agencia Sur", piso="2", zona="Centro")
-    ubicacion_norte = Ubicacion.objects.create(agencia="Agencia Norte", piso="3", zona="Norte")
-
-    marca_dell = Marca.objects.create(nombre="Dell")
-    marca_cisco = Marca.objects.create(nombre="Cisco")
-    marca_hp = Marca.objects.create(nombre="HP")
-
-    modelo_dell_pc = Modelo.objects.create(nombre="Latitude 5400", marca_id_marca=marca_dell)
-    modelo_cisco_sw = Modelo.objects.create(nombre="Catalyst 9200", marca_id_marca=marca_cisco)
-    modelo_hp_print = Modelo.objects.create(nombre="LaserJet 200", marca_id_marca=marca_hp)
-
-    carac_procesador = Caracteristica.objects.create(nombre="Procesador")
-    carac_ram = Caracteristica.objects.create(nombre="RAM")
-    carac_velocidad = Caracteristica.objects.create(nombre="Velocidad de red")
-    carac_tipo = Caracteristica.objects.create(nombre="Tipo periférico")
-
-    CaracteristicaTipoDispositivo.objects.create(caracteristica=carac_procesador, tipo_dispositivo=tipo_computo, obligatorio=True)
-    CaracteristicaTipoDispositivo.objects.create(caracteristica=carac_ram, tipo_dispositivo=tipo_computo)
-    CaracteristicaTipoDispositivo.objects.create(caracteristica=carac_velocidad, tipo_dispositivo=tipo_red, obligatorio=True)
-    CaracteristicaTipoDispositivo.objects.create(caracteristica=carac_tipo, tipo_dispositivo=tipo_periferico)
-
-    # Crear dispositivos
-    pc_redes1 = Dispositivo.objects.create(nomenclatura="PC-REDES-001", tipo_dispositivo=tipo_computo, propietario=cliente_redes1, is_active=True)
-    pc_redes2 = Dispositivo.objects.create(nomenclatura="PC-REDES-002", tipo_dispositivo=tipo_computo, propietario=cliente_redes2, is_active=True)
-    sw_redes = Dispositivo.objects.create(nomenclatura="SW-REDES-001", tipo_dispositivo=tipo_red, propietario=jefe_redes, is_active=True)
-    pc_soporte = Dispositivo.objects.create(nomenclatura="PC-SOPORTE-001", tipo_dispositivo=tipo_computo, propietario=cliente_soporte, is_active=True)
-    pc_personal = Dispositivo.objects.create(nomenclatura="PC-PERS-001", tipo_dispositivo=tipo_computo, propietario=cliente_personal, is_active=True)
-    pc_capacitacion = Dispositivo.objects.create(nomenclatura="PC-CAP-001", tipo_dispositivo=tipo_computo, propietario=cliente_capacitacion, is_active=True)
-    print_capacitacion = Dispositivo.objects.create(nomenclatura="PRINT-CAP-001", tipo_dispositivo=tipo_periferico, propietario=jefe_capacitacion, is_active=True)
+    # Subtipos de dispositivos
+    subtipo_laptop = SubtipoDispositivo.objects.create(tipo_dispositivo=tipo_computo, nombre="Laptop", is_active=True)
+    subtipo_router = SubtipoDispositivo.objects.create(tipo_dispositivo=tipo_red, nombre="Router", is_active=True)
+    subtipo_monitor = SubtipoDispositivo.objects.create(tipo_dispositivo=tipo_periferico, nombre="Monitor", is_active=True)
 
     # Características
-    DispositivoCaracter
+    caracteristica_ram = Caracteristica.objects.create(nombre="RAM", is_active=True)
+    caracteristica_disco = Caracteristica.objects.create(nombre="Disco Duro", is_active=True)
+
+    # Características asociadas a subtipos
+    CaracteristicaTipoDispositivo.objects.create(caracteristica=caracteristica_ram, subtipo_dispositivo=subtipo_laptop, obligatorio=True)
+    CaracteristicaTipoDispositivo.objects.create(caracteristica=caracteristica_disco, subtipo_dispositivo=subtipo_laptop, obligatorio=True)
+
+    # Estados de dispositivo
+    estado_activo = EstadoDispositivo.objects.create(nombre="Activo", descripcion="En uso", is_active=True)
+    estado_reparacion = EstadoDispositivo.objects.create(nombre="En reparación", descripcion="En taller", is_active=True)
+
+    # Ubicaciones
+    ubicacion_norte = Ubicacion.objects.create(agencia="Agencia Central", piso="Piso 1", zona="Norte", is_active=True)
+    ubicacion_centro = Ubicacion.objects.create(agencia="Agencia Central", piso="Piso 2", zona="Centro", is_active=True)
+
+    # Marcas y modelos
+    marca_dell = Marca.objects.create(nombre="Dell", is_active=True)
+    modelo_xps = Modelo.objects.create(nombre="XPS 13", marca_id_marca=marca_dell, is_active=True)
+
+    # Cantidad y tipo de memoria
+    memoria_16gb = CantidadMemoria.objects.create(cantidad=16, is_active=True)
+    tipo_ddr4 = TipoMemoria.objects.create(nombre="DDR4", is_active=True)
+
+    # Procesadores
+    procesador_i7 = Procesador.objects.create(marca=marca_dell, modelo="Core i7-12700", velocidad="2.1 GHz", nucleos=12, is_active=True)
+
+    # 4. Crear dispositivos
+    dispositivo_laptop = Dispositivo.objects.create(
+        nomenclatura="LAP-001", serie="SN12345", jira="JIRA-001",
+        tipo_dispositivo=tipo_computo, subtipo_dispositivo=subtipo_laptop,
+        propietario=cliente, is_active=True
+    )
+    dispositivo_router = Dispositivo.objects.create(
+        nomenclatura="RTR-001", serie="SN67890", jira="JIRA-002",
+        tipo_dispositivo=tipo_red, subtipo_dispositivo=subtipo_router,
+        propietario=cliente, is_active=True
+    )
+
+    # 5. Asignar características a dispositivos
+    DispositivoCaracteristica.objects.create(
+        dispositivo=dispositivo_laptop, caracteristica=caracteristica_ram, valor="16GB"
+    )
+    DispositivoCaracteristica.objects.create(
+        dispositivo=dispositivo_laptop, procesador=procesador_i7
+    )
+
+    # 6. Registrar historiales
+    # Estado
+    DispositivoEstado.objects.create(
+        fecha=datetime.date(2025, 3, 1), comentario="Dispositivo activado",
+        dispositivo_id_dispositivo=dispositivo_laptop, estado_id_estado=estado_activo,
+        agente=agente, is_active=True
+    )
+    # Ubicación
+    DispositivoUbicacion.objects.create(
+        fecha=datetime.date(2025, 3, 1), comentario="Asignado a Piso 1",
+        dispositivo_id_dispositivo=dispositivo_laptop, ubicacion_id_ubicacion=ubicacion_norte,
+        agente=agente, is_active=True
+    )
+    # Cambio de propietario
+    DispositivoPropietarioHistorico.objects.create(
+        dispositivo=dispositivo_laptop, propietario=cliente,
+        fecha_cambio=datetime.datetime(2025, 3, 1, 10, 0), comentario="Asignación inicial",
+        agente=agente, is_active=True
+    )
+
+    print("Base de datos poblada con éxito!")
+
+if __name__ == "__main__":
+    populate_db()

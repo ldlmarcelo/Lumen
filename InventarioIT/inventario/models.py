@@ -255,11 +255,11 @@ class DispositivoUbicacion(models.Model):
     def __str__(self):
         return f"{self.dispositivo_id_dispositivo.nomenclatura} - {self.fecha} - {self.ubicacion_id_ubicacion.agencia}, {self.ubicacion_id_ubicacion.piso}"
 
+
 class DispositivoPropietarioHistorico(models.Model):
     id_dispositivo_propietario_historico = models.AutoField(primary_key=True)
     dispositivo = models.ForeignKey(Dispositivo, on_delete=models.CASCADE, verbose_name="Dispositivo")
-    propietario_id_anterior = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column='propietario_id_anterior', blank=True, null=True, related_name='historico_anterior', verbose_name="Propietario Anterior")
-    propietario_id_nuevo = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, db_column='propietario_id_nuevo', related_name='historico_nuevo', blank=True, null=True, verbose_name="Propietario Nuevo")
+    propietario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Propietario")
     fecha_cambio = models.DateTimeField(verbose_name="Fecha de Cambio")
     comentario = models.CharField(max_length=255, blank=True, null=True, verbose_name="Comentario")
     agente = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=False, blank=False, verbose_name="Agente del Cambio de Propietario", related_name='cambios_propietario_historico')
@@ -268,6 +268,17 @@ class DispositivoPropietarioHistorico(models.Model):
     class Meta:
         verbose_name = "Dispositivo Propietario Histórico"
         verbose_name_plural = "Dispositivos Propietarios Históricos"
+        ordering = ['fecha_cambio']  # Para facilitar el orden cronológico
 
     def __str__(self):
-        return f"{self.dispositivo.nomenclatura} - {self.fecha_cambio} - De: {self.propietario_id_anterior} a: {self.propietario_id_nuevo}"
+        return f"{self.dispositivo.nomenclatura} - {self.fecha_cambio} - Propietario: {self.propietario}"
+
+    def save(self, *args, **kwargs):
+        # Opcional: Validar que el propietario sea diferente al del último registro
+        if self.pk is None:  # Solo en creación de nuevo registro
+            ultimo_registro = DispositivoPropietarioHistorico.objects.filter(
+                dispositivo=self.dispositivo
+            ).order_by('-fecha_cambio').first()
+            if ultimo_registro and ultimo_registro.propietario == self.propietario:
+                raise ValidationError("El propietario no ha cambiado.")
+        super().save(*args, **kwargs)
